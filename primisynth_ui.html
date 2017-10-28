@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta id="viewport" name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+		<!-- <link rel="stylesheet" type="text/css" href="css/style.css"> -->
+		<title>Primisynth</title>
+		<style>
+			
+			button{
+				font-family: Ubuntu Mono, monospace;
+				font-size: 1.5rem;
+			}
+			
+			input{
+				font-family: Ubuntu Mono, monospace;
+				font-size: 1rem;
+			}
+			
+			canvas{ background-color: black; }
+			
+			.wgraph{ background-color: black; }
+			
+			td{ border: 1px solid cyan; }
+			
+			.subdiv{
+				border-radius: 0.5rem;
+				border: 1px solid cyan;
+				display:inline;
+				padding: 1rem 0.5rem 0.5rem 0.5rem;
+				margin: 0.5rem 0.5rem 0.5rem 0.5rem;
+			}
+			
+			.subdiv2{
+				border-radius: 0.5rem;
+				border: 1px solid cyan;
+				padding: 1rem 0.5rem 0.5rem 0.5rem;
+				margin: 0.5rem 0.5rem 0.5rem 0.5rem;
+			}
+			
+			.maindiv{
+				border-radius: 0.5rem;
+				border: 1px solid cyan;
+				padding: 1rem 0.5rem 0.5rem 0.5rem;
+				margin: 0.5rem 0.5rem 0.5rem 0.5rem;
+			}
+			
+			.deletebutton{
+				font-size: 1rem;
+				background-color:red;
+				color:white;
+				float:right;
+			}
+			
+		</style>
+	</head>
+	<body id="mainbody" onload="onload_init();" style="background-color:rgb(32,32,32);color:rgb(255,255,255); font-family:Ubuntu Mono, monospace;" >
+		<!-- Loop editor -->
+		<div class="maindiv" style="background-color:rgb(0,128,96);" id="seqcontrols">
+			<div class="maindiv" >
+				Loop
+				<button id="button_seqrender" onclick="rendersequence()">[F] Render</button>
+				<button id="button_seqplaypause" onclick="playpause(loopwave)" >[G] ▶ ■</button>
+				<button id="button_saveloopwave" onclick="saveWAV(loopwave,1)" >[J] Save WAV</button>
+				<br/>
+				Basenote
+				<input id="basenoteinput" type="text" style="width:3rem;" list="basenotedatalist"></input>
+				<datalist id="basenotedatalist"></datalist>
+				BPM
+				<input id="bpminput" oninput="changebpm()" type="text" style="width:5rem;"></input>
+				Samplerate
+				<input id="samplerateinput" oninput="changesamplerate()" type="text" style="width:5rem;"></input>
+				<br/><br/>
+				<button id="button_everything" onclick="doeverything()" >[H] Randomize Everything</button><br/>
+				<button id="button_savestate" onclick="savestate()" >[K] Save state</button>
+				<button id="button_loadstate" onclick="loadstate()" >Load state from JSON: </button>
+				<textarea id="statedef" cols=16 rows=1 style="font-family:monospace; background-color:darkblue; color:white;" ></textarea>
+			</div>
+			<div class="maindiv" >
+				FX
+				<input id="effectpresetinput" type="text" list="effectpresetdatalist"></input>
+				<datalist id="effectpresetdatalist"></datalist>
+				<textarea id="effectdef" cols=64 rows=2 style="font-family:monospace; background-color:darkblue; color:white;" ></textarea>
+			</div>
+			<div class="maindiv" >
+				Sequencer
+				<button id="button_seqgenerate" onclick="generatesequence()">[D] Generate</button>
+				Melody
+				<input id="melodypresetinput" type="text" list="melodypresetdatalist"></input>
+				<datalist id="melodypresetdatalist"></datalist>
+				Rhythm
+				<input id="rhythmpresetinput" type="text" list="rhythmpresetdatalist"></input>
+				<datalist id="rhythmpresetdatalist"></datalist>
+				Beats
+				<input id="beatsperloopinput" oninput="changebeatsperloop()" type="text" style="width:2rem;"></input>
+				<br/><br/>
+				<textarea id="seqdef" cols=16 rows=22 oninput="delayedseqrefresh()" style="font-family:monospace; background-color:darkblue; color:white;" ></textarea>
+				<div id="seqgraph" style="display:inline;background-color:rgb(0,0,0);" ></div>
+			</div>
+		</div>
+	
+		
+		<!-- Synth playback -->
+		<div class="maindiv" style="background-color:rgb(0,96,128);" >
+			Synth
+			<button id="button_playpause" onclick="playpause(synw)">[S] ▶ ■</button>
+			<button id="button_savesynw" onclick="saveWAV(synw,0)">Save WAV</button>
+			Preset
+			<input id="synthpresetinput" type="text" list="synthpresetdatalist"></input>
+			<datalist id="synthpresetdatalist"></datalist>
+			<button id="button_generate" onclick="getrandomsynth()">[A] Randomize</button>
+			<br/><br/>
+			
+			<!-- Main graph -->
+			<div id="graphdiv" class="wgraph" ></div><br/>
+			
+			<!-- Synth editor -->
+			<div class="subdiv2" >
+				Editor
+				
+				<!-- Control points editor -->
+				<button id="addcpbutton" onclick="addcontrolpoint()" >Add controlpoint</button>
+				<button id="deletecpbutton" onclick="deletecontrolpoint()" >Delete controlpoint</button>
+				<button id="resetcpsbutton" onclick="resetcps()" >Reset curve</button>
+				<div id="editorgraph" class="wgraph" style="width:400px;height:400px;margin:1rem 1rem 1rem 1rem;" ></div>
+				<div id="controlpointsdiv"></div>
+				
+				<!-- Parameters table -->
+				<table><tbody>
+				<tr id="waveformsrow" ></tr>
+				<tr id="voicesrow" ></tr>
+				<tr>
+					<td><div id="predrivegraph" class="wgraph" onclick="edcpsname='predrive';startedit();" ></div><br/>Pre-drive</td>
+					<td><div id="envelopegraph" class="wgraph" onclick="edcpsname='envelope';startedit();"  ></div><br/>Envelope</td>
+					<td><div id="pangraph" class="wgraph" onclick="edcpsname='pan';startedit();" ></div><br/>Pan</td>
+				</tr>		
+				</tbody></table>
+				<br/>
+				<!-- Synth program definition -->
+				<button id="synthdefupdatebutton" onclick="synthdefupdate()">Update from JSON below</button><br/>
+				<textarea id="synthdef" cols=80 rows=25 style="font-family:monospace; background-color:darkblue; color:white;" ></textarea><br/>
+			</div>
+		</div><!-- End of Synth editor -->
+		
+		<!-- Log -->
+		<div class="maindiv" >
+		Log<br/><br/>
+		<textarea id="logdiv" cols=80 rows=25 style="font-family:monospace; background-color:black; color:gray;" ></textarea>
+		</div>
+		
+		<!-- Download link container -->
+		<div style="display:none" id="downloadlinkcontainer"></div>
+		<div style="display:none" id="downloadlinkcontainer2"></div>
+		
+		<!-- primisynth.js -->
+		<script src="primisynth_core.js"></script>
+		<script src="primisynth_presets.js"></script>
+		<script src="primisynth_ui.js"></script>
+	</body>
+</html>

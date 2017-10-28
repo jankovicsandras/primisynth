@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body onload="startdemo()" >
+<script src="primisynth_core.js"></script>
+<script src="primisynth_presets.js"></script>
+<script>
+
+function startdemo(){
+	
+	// synth definition
+	var syn = synthpresets['saw1'];
+	
+	// generating sequence
+	var seq = getsequence('tritonic2','syncope1');
+	
+	// effects
+	var fx = effectpresets['echo1'];
+	
+	// rendering
+	var loopwave = renderloop( syn, seq, 440, fx );
+	
+	// HTML a (anchor) element with the wave converted to a Base64 Data URI encoded WAV
+	var downloadlink = document.createElement('a');
+	downloadlink.id = 'downloadlinka';
+	downloadlink.download = 'test2.wav';
+	downloadlink.href = getDataURIWAV(loopwave);
+	
+	// Append anchor and simulate mouse click
+	document.body.appendChild(downloadlink);
+	document.getElementById('downloadlinka').click();
+	
+}// End of startdemo()
+
+</script>
+</body>
+</html>
